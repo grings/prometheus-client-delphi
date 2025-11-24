@@ -1,200 +1,688 @@
-<div>  
+<div>
   <img alt="Prometheus Client for Delphi" height="256" src="https://ucarecdn.com/a7019e45-d14b-47cd-8ceb-70ba7848f049/">
   <h1>Prometheus Client for Delphi</h1>
 </div>
-<br />
 
-This is a Delphi client library for [Prometheus](http://prometheus.io), similar to [libraries created for other languages](https://prometheus.io/docs/instrumenting/writing_clientlibs/).  
+<p align="center">
+  <strong>Instrument your Delphi applications with Prometheus metrics for modern observability</strong>
+</p>
 
-## Overview
+## What is Prometheus?
 
-The **Prometheus Delphi Client** library is a set of classes that allow you to instrument your Delphi applications with *Prometheus* metrics.
+[Prometheus](http://prometheus.io) is an open-source monitoring and alerting toolkit that has become the de-facto standard for cloud-native monitoring. Originally built at SoundCloud, it's now a graduated [CNCF](https://www.cncf.io/) project used by organizations worldwide.
 
-It allows you to instrument your Delphi code with custom metrics and provides some built-in and ready to use metrics.
+### How Prometheus works
 
-The library also supports Prometheus' text based exposition format, that can be configured and made available via an HTTP endpoint on your Web application's instance using specific middlewares or directly calling the text exporter.
+```
+┌─────────────┐          ┌─────────────┐          ┌─────────────┐
+│ Delphi App  │          │ Prometheus  │          │   Grafana   │
+│             │          │   Server    │          │  Dashboard  │
+│  /metrics   │ ◄─scrape─┤             │ ◄─query──┤             │
+│  endpoint   │          │  (storage)  │          │  (display)  │
+└─────────────┘          └─────────────┘          └─────────────┘
+```
 
-### What is Prometheus
+1. Your Delphi app exposes a `/metrics` HTTP endpoint
+2. Prometheus periodically **scrapes** (pulls) metrics from your app
+3. Metrics are stored in a time-series database
+4. You query metrics using **PromQL** (Prometheus Query Language)
+5. Visualize data in **Grafana** dashboards
+6. Set up **alerts** when metrics exceed thresholds
 
-[Prometheus](http://prometheus.io) is a popular open-source monitoring tool that is widely used in modern software environments. It provides a powerful system for collecting and analyzing metrics from various sources, including applications, servers, and other systems.
+### Key Prometheus features
 
-To use *Prometheus* effectively, you need a [client library](https://prometheus.io/docs/instrumenting/clientlibs/) implemented in your favorite programming language that can be integrated into your applications to expose the relevant metrics to the Prometheus server.
+- **Multi-dimensional data model** - Metrics identified by name and labels (key-value pairs)
+- **Powerful query language (PromQL)** - Flexible queries and aggregations
+- **Pull-based model** - Prometheus scrapes your app (no agent needed)
+- **Service discovery** - Automatic discovery of monitoring targets
+- **Built-in alerting** - Alert manager for handling alerts
+- **Efficient storage** - Local time-series database with optional remote storage
 
-Here we will discuss the client library for Prometheus written for [Embarcadero Delphi](https://www.embarcadero.com/products/delphi/).
+### Monitoring matters!
 
-### Main Features
+Modern applications need **observability** to understand their behavior in production. Without proper monitoring, you're flying blind:
 
-The Prometheus Delphi Client library offers a **range of features** that make it a powerful and flexible tool for monitoring Delphi applications using Prometheus.
+- **How many requests is your API handling?** Without metrics, you won't know if you're at 10% or 90% capacity.
+- **Why did your application slow down?** Response time metrics help identify performance bottlenecks.
+- **Is that new feature being used?** Business metrics show real user behavior.
+- **When should you scale?** Resource metrics (CPU, memory, connections) guide infrastructure decisions.
 
-By using the library, you can gain valuable insights into the performance and behavior of your Delphi applications and make data-driven decisions to improve them.
+**Observability** is the practice of understanding your application's internal state by examining its outputs. Prometheus metrics are a core pillar of observability, alongside logs and traces.
 
-Here are some of supported features:
+## Prometheus Delphi Client
 
-+ **Basic metrics**: the library allows you to define some basic metrics supported by Prometheus to track some relevant values in your application, like the number of times an event has occured or the current amount of allocated memory and so on.
-+ **Labels**: these are key-value pairs that allow you to add additional context to your metrics.
-+ **Custom Collectors**: the library allows you to define custom collectors that can be used to collect metrics from any source.
+The **Prometheus Delphi Client** library provides everything you need to instrument your Delphi applications with Prometheus metrics.
 
-## Getting Started
+## Features
 
-To get started with the Prometheus Delphi Client library, you need to follow these steps.
+The Prometheus Delphi Client library offers a comprehensive set of features:
 
-### ⚙ Install the library
+- **Standard Metric Types**
+  - **Counter** - Cumulative metrics that only increase (requests, errors, etc.)
+  - **Gauge** - Metrics that can go up and down (memory usage, connections, etc.)
+  - **Histogram** - Distribution of values in configurable buckets (response times, sizes)
+  - **Summary** - *(Under development)* - Quantiles over sliding time windows
 
-Installation is done using the [`boss install`](https://github.com/HashLoad/boss) command:
-``` sh
+- **Label Support** - Add context to metrics with key-value pairs for multi-dimensional data
+
+- **Collector Registry** - Centralized registry to manage multiple metrics efficiently
+
+- **Text Format Exporter** - Export metrics in Prometheus text-based exposition format
+
+- **Thread-Safe Operations** - Safe to use in multi-threaded and concurrent applications
+
+- **Custom Collectors** - Extend with your own metric types and collectors
+
+- **Web Framework Integration** - Ready-to-use middlewares for popular Delphi web frameworks
+
+- **Best Practices Built-in** - Follows [Prometheus best practices](https://prometheus.io/docs/practices/) for naming and usage
+
+## Installation
+
+### Using Boss Package Manager
+
+[Boss](https://github.com/HashLoad/boss) is a dependency manager for Delphi. If you have Boss installed:
+
+```bash
 boss install marcobreveglieri/prometheus-client-delphi
 ```
-If you choose to install it manually, download the source code from GitHub simply add the following folders to your project, in *Project > Options > Resource Compiler > Directories and Conditionals > Include file search path*
+
+### Manual Installation
+
+1. Download or clone the repository from [GitHub](https://github.com/marcobreveglieri/prometheus-client-delphi)
+2. Add the `Source` folder to your project's search path:
+   - Open **Project > Options**
+   - Navigate to **Delphi Compiler > Search Path** (or **Resource Compiler > Directories and Conditionals > Include file search path** for older versions)
+   - Add the path: `prometheus-client-delphi\Source`
+
+Example:
 ```
-prometheus-client-delphi/Source
+C:\Projects\prometheus-client-delphi\Source
 ```
 
-### 📏 Define your metrics
+## Quick Start Guide
 
-Define the metrics you want to track using the appropriate classes (see below).
+Let's create a complete working example that tracks HTTP requests.
 
-### 📒 Register your metrics
+### Step 1: Add Required Units
 
-Register your metrics inside the default collector registry or in a registry of your own for subsequent handling and exportation.
+```delphi
+uses
+  Prometheus.Collectors.Counter,
+  Prometheus.Collectors.Histogram,
+  Prometheus.Registry,
+  Prometheus.Exposers.Text;
+```
 
-### ✔ Update your metrics
+### Step 2: Create and Register Metrics
 
-Update your metrics as needed calling the appropriate methods you can find on collector instance depending on the classes they are based to.
+```delphi
+var
+  LCounter: TCounter;
+  LDuration: THistogram;
 
-### 💾 Export all your metric samples
+procedure InitializeMetrics;
+begin
+  // Counter for total requests
+  LCounter := TCounter.Create(
+    'http_requests_total',
+    'Total HTTP requests processed',
+    ['method', 'path', 'status']
+  ).Register();
 
-You can export your metrics calling the text based exporter or making use of a ready to use middleware that targets your favourite Delphi Web framework (see [Middlewares](#Middlewares) section below for details).
+  // Histogram for request duration
+  LDuration := THistogram.Create(
+    'http_request_duration_seconds',
+    'HTTP request duration in seconds',
+    ['method', 'path']
+  ).Register();
+end;
+```
 
-## Metrics
+### Step 3: Track Metrics in Your Application
 
-Prometheus Delphi Client supports the following metric types.
+```delphi
+procedure HandleRequest(const AMethod, APath: string; AStatusCode: Integer);
+var
+  LStopwatch: TStopwatch;
+begin
+  LStopwatch := TStopwatch.StartNew;
+  try
+    // Your request handling code here
+    ProcessRequest(AMethod, APath);
+  finally
+    LStopwatch.Stop;
+
+    // Record metrics
+    LCounter.Labels([AMethod, APath, IntToStr(AStatusCode)]).Inc();
+    LDuration.Labels([AMethod, APath]).Observe(LStopwatch.Elapsed.TotalSeconds);
+  end;
+end;
+```
+
+### Step 4: Expose Metrics Endpoint
+
+```delphi
+// Example using Indy HTTP Server
+procedure HandleMetricsRequest(AContext: TIdContext;
+  ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
+var
+  LExposer: TTextExposer;
+begin
+  if ARequestInfo.Document = '/metrics' then
+  begin
+    LExposer := TTextExposer.Create;
+    try
+      AResponseInfo.ContentType := 'text/plain; charset=utf-8';
+      AResponseInfo.ContentText := LExposer.Render(
+        TCollectorRegistry.DefaultRegistry.Collect()
+      );
+      AResponseInfo.ResponseNo := 200;
+    finally
+      LExposer.Free;
+    end;
+  end;
+end;
+```
+
+### Step 5: Configure Prometheus
+
+Create `prometheus.yml` to scrape your application:
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'my-delphi-app'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+```
+
+Start Prometheus and visit `http://localhost:9090` to query your metrics!
+
+**Next Steps**: Check the [Getting Started](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Getting-Started) wiki page for more detailed tutorials.
+
+## Metric Types
 
 ### Counter
 
-A **counter** is a cumulative metric that represents a single monotonically increasing counter whose value can only increase or be reset to zero on restart. For example, you can use a counter to represent the number of requests served, tasks completed, or errors.
+A **counter** is a cumulative metric that only increases (or resets to zero on restart). Use counters for values that accumulate over time.
 
-Do not use a counter to expose a value that can decrease. For example, do not use a counter for the number of currently running processes; instead use a gauge.
+**Use cases**: Total requests, errors, tasks completed, bytes processed
 
 ```delphi
 uses
   Prometheus.Collectors.Counter;
 
+var
+  LCounter: TCounter;
 begin
-  var LCounter := TCounter.Create('sample', 'Description of this counter');
-  LCounter.Inc(); // increment by 1
-  LCounter.Inc(123); // increment by 123
-end.
+  // Create and register
+  LCounter := TCounter.Create('app_requests_total', 'Total requests processed')
+    .Register();
+
+  // Increment by 1
+  LCounter.Inc();
+
+  // Increment by specific amount
+  LCounter.Inc(5);
+end;
+```
+
+**With labels**:
+```delphi
+var
+  LCounter: TCounter;
+begin
+  LCounter := TCounter.Create('http_requests_total', 'Total HTTP requests', ['method', 'status'])
+    .Register();
+
+  LCounter.Labels(['GET', '200']).Inc();
+  LCounter.Labels(['POST', '404']).Inc();
+end;
 ```
 
 ### Gauge
 
-A **gauge** is a metric that represents a single numerical value that can arbitrarily go up and down.
+A **gauge** is a metric that can arbitrarily increase or decrease. Use gauges for values that represent current state.
 
-Gauges are typically used for measured values like temperatures or current memory usage, but also "counts" that can go up and down, like the number of concurrent requests.
+**Use cases**: Memory usage, active connections, queue depth, temperature
 
 ```delphi
 uses
   Prometheus.Collectors.Gauge;
 
+var
+  LGauge: TGauge;
 begin
-  var LGauge := TGauge.Create('sample', 'Description of this gauge');
-  LGauge.Inc(); // increment by 1
-  LGauge.Inc(123); // increment by 123
-  LGauge.Dec(10); // decrement by 10
-  LGauge.SetTo(123); // set value directly to 123
-  LGauge.SetDuration( // set value to duration of method execution
+  // Create and register
+  LGauge := TGauge.Create('memory_usage_bytes', 'Current memory usage in bytes')
+    .Register();
+
+  // Increment and decrement
+  LGauge.Inc();        // +1
+  LGauge.Inc(100);     // +100
+  LGauge.Dec(50);      // -50
+
+  // Set to specific value
+  LGauge.SetTo(1024);
+
+  // Set to duration of operation
+  LGauge.SetDuration(
     procedure
     begin
-      // User code
+      // Your code here - gauge will be set to execution time in seconds
+      ProcessData();
     end);
-end.
+end;
 ```
 
 ### Histogram
 
-A **histogram** samples observations (usually things like request durations or response sizes) and counts them in configurable buckets. It also provides a sum of all observed values.
+A **histogram** samples observations and counts them in configurable buckets. Histograms are ideal for measuring distributions like request durations or response sizes.
+
+**Use cases**: Request/response durations, response sizes, query times
 
 ```delphi
 uses
   Prometheus.Collectors.Histogram;
 
+var
+  LHistogram: THistogram;
 begin
-  LHistogram := THistogram.Create('Name of histogram metric', 'Help text for histogram metric');
-  // If buckets argument is not supplied, the default values will be used:
-  // [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10, INFINITE].
-  LHistogram.Observe(0.01);
-  LHistogram.Observe(0.04);
-  LHistogram.Observe(1);
-end.
+  // Create with default buckets
+  LHistogram := THistogram.Create(
+    'request_duration_seconds',
+    'HTTP request duration in seconds'
+  ).Register();
+
+  // Record observations
+  LHistogram.Observe(0.25);  // 250ms
+  LHistogram.Observe(0.5);   // 500ms
+  LHistogram.Observe(1.2);   // 1.2s
+end;
 ```
 
-### Summary
+**With custom buckets**:
+```delphi
+var
+  LHistogram: THistogram;
+begin
+  // Custom buckets optimized for your use case
+  LHistogram := THistogram.Create(
+    'api_response_time_seconds',
+    'API response time',
+    [],  // No labels
+    [0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0]  // Custom buckets in seconds
+  ).Register();
 
-Similar to a histogram, a **summary** samples observations (usually things like request durations and response sizes). While it also provides a total count of observations and a sum of all observed values, it calculates configurable quantiles over a sliding time window.
+  LHistogram.Observe(0.123);
+end;
+```
 
-*** !!! Under Development !!! ***
+**Learn more**: See [Metric Types](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Metric-Types) in the wiki for detailed information, including when to use each type.
 
-### Custom metrics
+## Working with Labels
 
-You can also implement your own custom metrics by inheriting the appropriate classes (**TCollector** or **TSimpleCollector**).
+**Labels** add dimensions to your metrics, allowing you to slice and dice data in Prometheus queries.
 
-## Labels
+### Basic Label Usage
 
-All metrics can have **labels**, allowing grouping of related time series.
+```delphi
+var
+  LCounter: TCounter;
+begin
+  // Create metric with labels
+  LCounter := TCounter.Create(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'path', 'status']  // Label names
+  ).Register();
 
-Taking a counter as an example:
+  // Increment specific label combinations
+  LCounter.Labels(['GET', '/api/users', '200']).Inc();
+  LCounter.Labels(['POST', '/api/orders', '201']).Inc();
+  LCounter.Labels(['GET', '/api/users', '404']).Inc();
+end;
+```
+
+### Retrieving and Reusing Metrics
+
+```delphi
+// Later in your code, retrieve the metric from the registry
+var
+  LCounter: TCounter;
+begin
+  LCounter := TCollectorRegistry.DefaultRegistry
+    .GetCollector<TCounter>('http_requests_total');
+
+  if Assigned(LCounter) then
+    LCounter.Labels(['GET', '/api/products', '200']).Inc();
+end;
+```
+
+### Best Practices for Labels
+
+- **Keep cardinality low** - Avoid labels with unbounded values (user IDs, timestamps, etc.)
+- **Use consistent names** - Standardize label names across metrics (`method`, `status`, `endpoint`)
+- **Don't overuse labels** - 3-5 labels per metric is typically sufficient
+- **Label values should be bounded** - Use categories, not unique identifiers
+
+**Learn more**: See [Working with Labels](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Working-with-Labels) for advanced patterns and best practices.
+
+## Exporting Metrics
+
+Metrics must be exposed via an HTTP endpoint for Prometheus to scrape them.
+
+### Basic Export to String
 
 ```delphi
 uses
-  Prometheus.Collectors.Counter;
+  Prometheus.Exposers.Text,
+  Prometheus.Registry;
 
+var
+  LExposer: TTextExposer;
+  LMetrics: string;
 begin
-  var LCounter := TCounter
-    .Create('http_requests_handled', 'HTTP handled requests total', ['path', 'status'])
-    .Register();
-end.
+  LExposer := TTextExposer.Create;
+  try
+    LMetrics := LExposer.Render(
+      TCollectorRegistry.DefaultRegistry.Collect()
+    );
+    Writeln(LMetrics);
+  finally
+    LExposer.Free;
+  end;
+end;
 ```
 
-Metrics with labels are not initialized when declared, because the client can't know what values the label can have.
-It is recommended to initialize the label values by calling the appropriate method and then eventually call another method to alter the value of the metric associated to label values:
+**Output example**:
+```
+# HELP http_requests_total Total HTTP requests.
+# TYPE http_requests_total counter
+http_requests_total{method="GET",status="200"} 150
+http_requests_total{method="POST",status="201"} 42
+
+# HELP memory_usage_bytes Current memory usage.
+# TYPE memory_usage_bytes gauge
+memory_usage_bytes 1048576
+```
+
+### Delphi MVC Framework
+
+The [DMVC Prometheus Metrics](https://github.com/marcobreveglieri/dmvc-prometheus-metrics) middleware integrates with DelphiMVCFramework applications.
+
+**Installation**:
+```bash
+boss install marcobreveglieri/dmvc-prometheus-metrics
+```
+
+The middleware automatically exposes metrics and can track requests, response times, and more.
+
+**Learn more**: See [Web Framework Integration](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Web-Framework-Integration) for framework-specific guides.
+
+### HTTP Endpoint with Indy
 
 ```delphi
 uses
-  Prometheus.Collectors.Counter;
+  IdHTTPServer, IdContext, IdCustomHTTPServer,
+  Prometheus.Exposers.Text, Prometheus.Registry;
 
+procedure TForm1.IdHTTPServer1CommandGet(AContext: TIdContext;
+  ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
+var
+  LExposer: TTextExposer;
 begin
-  TCollectorRegistry.DefaultRegistry
-    .GetCollector<TCounter>('http_requests_handled')
-    .Labels(['/api', 200]) // ['path', 'status']
-    .Inc(); // increment child counter attached to these label values
-end.
+  if ARequestInfo.Document = '/metrics' then
+  begin
+    LExposer := TTextExposer.Create;
+    try
+      AResponseInfo.ContentType := 'text/plain; charset=utf-8';
+      AResponseInfo.ContentText := LExposer.Render(
+        TCollectorRegistry.DefaultRegistry.Collect()
+      );
+      AResponseInfo.ResponseNo := 200;
+    finally
+      LExposer.Free;
+    end;
+  end;
+end;
 ```
 
-## Exporting metrics
+**Learn more**: See [Exporting Metrics](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Exporting-Metrics) for more export methods, including streams, Windows services, and security best practices.
 
-There are several options for exporting metrics. For example, you can export metrics from a *Windows Service Application* using a **TIdHttp** server component from *Indy Components* and exposing a "/metrics" endpoint where you export text based metrics data to Prometheus server.
+## Web Framework Integration
 
-You can also download a middleware for your favourite Web framework or take a look at the sample projects.
+For popular Delphi web frameworks, use these official middleware packages that automatically expose metrics:
 
-## Middlewares
+### Horse Framework
 
-To ease the use of Prometheus Client inside Web applications created with Delphi, you will find here **middlewares** to download and install.
+The [Horse Prometheus Metrics](https://github.com/marcobreveglieri/horse-prometheus-metrics) middleware provides automatic metrics exposition and optional request tracking.
 
-Each middleware integrates support for exposing metrics to Prometheus server using the appropriate format and without having to code each endpoint manually.
+**Installation**:
+```bash
+boss install marcobreveglieri/horse-prometheus-metrics
+```
 
-You can find official **Prometheus Client middlewares** into these separate repositories:
+**Usage**:
+```delphi
+uses
+  Horse,
+  Horse.Prometheus;
 
-| Middleware |
-| ------------------------------------------------------------------------------------------ |
-|  [Delphi MVC Framework](https://github.com/marcobreveglieri/dmvc-prometheus-metrics)       |
-|  [Horse](https://github.com/marcobreveglieri/horse-prometheus-metrics)                     |
+begin
+  // Automatically exposes /metrics endpoint
+  THorse.Use(Prometheus);
 
-## Delphi compatibility
+  // Your routes here
+  THorse.Get('/api/users', HandleGetUsers);
 
-*Prometheus Client* works with **Delphi 11 Alexandria** as it makes use of advanced features of Delphi language, but with some slight changes it maybe could work in previous versions.
+  THorse.Listen(9000);
+end;
+```
 
-## Additional links
+## Real-World Examples
 
-+ [Prometheus Official Page](https://prometheus.io)
-+ [Using Delphi with Prometheus and Grafana (in Italian language)](https://www.youtube.com/watch?v=-bPDl6MP6jo)
+### Complete HTTP Request Tracking
 
+```delphi
+uses
+  Prometheus.Collectors.Counter,
+  Prometheus.Collectors.Histogram,
+  System.Diagnostics;
+
+type
+  THTTPMetrics = class
+  private
+    FRequestCounter: TCounter;
+    FDurationHistogram: THistogram;
+  public
+    constructor Create;
+    procedure TrackRequest(const AMethod, APath: string;
+      AStatus: Integer; ADuration: Double);
+  end;
+
+constructor THTTPMetrics.Create;
+begin
+  inherited;
+
+  FRequestCounter := TCounter.Create(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'path', 'status']
+  ).Register();
+
+  FDurationHistogram := THistogram.Create(
+    'http_request_duration_seconds',
+    'HTTP request duration in seconds',
+    ['method', 'path'],
+    [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0]  // Buckets
+  ).Register();
+end;
+
+procedure THTTPMetrics.TrackRequest(const AMethod, APath: string;
+  AStatus: Integer; ADuration: Double);
+begin
+  FRequestCounter.Labels([AMethod, APath, IntToStr(AStatus)]).Inc();
+  FDurationHistogram.Labels([AMethod, APath]).Observe(ADuration);
+end;
+
+// Usage in your application
+var
+  GMetrics: THTTPMetrics;
+
+procedure HandleHTTPRequest(ARequest: TRequest; AResponse: TResponse);
+var
+  LStopwatch: TStopwatch;
+begin
+  LStopwatch := TStopwatch.StartNew;
+  try
+    // Process your request
+    ProcessRequest(ARequest, AResponse);
+  finally
+    LStopwatch.Stop;
+    GMetrics.TrackRequest(
+      ARequest.Method,
+      ARequest.PathInfo,
+      AResponse.StatusCode,
+      LStopwatch.Elapsed.TotalSeconds
+    );
+  end;
+end;
+```
+
+### Memory and Connection Pool Monitoring
+
+```delphi
+uses
+  Prometheus.Collectors.Gauge;
+
+type
+  TSystemMetrics = class
+  private
+    FMemoryUsage: TGauge;
+    FActiveConnections: TGauge;
+  public
+    constructor Create;
+    procedure UpdateMetrics;
+  end;
+
+constructor TSystemMetrics.Create;
+begin
+  FMemoryUsage := TGauge.Create(
+    'app_memory_bytes',
+    'Application memory usage in bytes'
+  ).Register();
+
+  FActiveConnections := TGauge.Create(
+    'db_connections_active',
+    'Number of active database connections'
+  ).Register();
+end;
+
+procedure TSystemMetrics.UpdateMetrics;
+var
+  LMemStatus: TMemoryManagerState;
+  LMemUsage: Int64;
+begin
+  // Update memory usage
+  GetMemoryManagerState(LMemStatus);
+  LMemUsage := LMemStatus.TotalAllocatedMediumBlockSize +
+               LMemStatus.TotalAllocatedLargeBlockSize;
+  FMemoryUsage.SetTo(LMemUsage);
+
+  // Update connection pool
+  FActiveConnections.SetTo(GetActiveConnectionCount());
+end;
+
+// Call UpdateMetrics() periodically (e.g., every 5 seconds via a timer)
+```
+
+**More examples**: See [Code Examples](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Code-Examples) in the wiki for database monitoring, cache tracking, job queues, and more.
+
+## Documentation
+
+Comprehensive documentation is available in the [GitHub Wiki](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki).
+
+## Delphi Compatibility
+
+**Prometheus Client for Delphi** requires **Delphi 11 Alexandria** or later versions.
+
+The library leverages modern Delphi language features including:
+
+- Inline variable declarations
+- Anonymous methods
+- Generics
+- Advanced RTTI
+
+While it may work with earlier Delphi versions with modifications, official support and testing target Delphi 11 Alexandria and newer releases.
+
+## Problem? Solved!
+
+| Problem | Solution |
+|---------|----------|
+| **"How do I add metrics to my Delphi app?"** | Ready-to-use metric types: Counter, Gauge, Histogram |
+| **"How do I export metrics in Prometheus format?"** | Built-in text format exporter compatible with Prometheus |
+| **"How do I add context to my metrics?"** | Label support for multi-dimensional metrics |
+| **"Is it thread-safe?"** | Yes, all operations are thread-safe for multi-threaded apps |
+| **"How do I integrate with my web framework?"** | Official middlewares for Horse and DMVC Framework |
+| **"Can I create custom metrics?"** | Extensible architecture for custom collectors |
+
+## Contributing
+
+Contributions are welcome! Here's how you can help:
+
+- **Report bugs** - Open an issue on [GitHub Issues](https://github.com/marcobreveglieri/prometheus-client-delphi/issues)
+- **Suggest features** - Share your ideas for improvements
+- **Submit pull requests** - Fix bugs or add features
+- **Improve documentation** - Help make the docs clearer and more comprehensive
+- **Share examples** - Contribute real-world usage examples
+
+See the [Contributing Guide](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki/Contributing) for more details.
+
+## Resources
+
+### Official Links
+- [GitHub Repository](https://github.com/marcobreveglieri/prometheus-client-delphi)
+- [Wiki Documentation](https://github.com/marcobreveglieri/prometheus-client-delphi/wiki)
+- [Issue Tracker](https://github.com/marcobreveglieri/prometheus-client-delphi/issues)
+
+### Prometheus Resources
+- [Prometheus Official Site](https://prometheus.io)
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Prometheus Best Practices](https://prometheus.io/docs/practices/)
+- [PromQL Query Language](https://prometheus.io/docs/prometheus/latest/querying/basics/)
+
+### Grafana Resources
+- [Grafana Official Site](https://grafana.com)
+- [Grafana Documentation](https://grafana.com/docs/)
+- [Prometheus Data Source Guide](https://grafana.com/docs/grafana/latest/datasources/prometheus/)
+
+### Middleware Packages
+- [Horse Prometheus Metrics](https://github.com/marcobreveglieri/horse-prometheus-metrics) - Horse framework middleware
+- [DMVC Prometheus Metrics](https://github.com/marcobreveglieri/dmvc-prometheus-metrics) - Delphi MVC Framework middleware
+
+### Video Tutorials
+- [Using Delphi with Prometheus and Grafana](https://www.youtube.com/watch?v=-bPDl6MP6jo) (Italian)
+
+## License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  <strong>Made with ❤️ for the Delphi community</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/marcobreveglieri/prometheus-client-delphi/issues">Report Bug</a> •
+  <a href="https://github.com/marcobreveglieri/prometheus-client-delphi/issues">Request Feature</a> •
+  <a href="https://github.com/marcobreveglieri/prometheus-client-delphi/wiki">Documentation</a>
+</p>
+> [!IMPORTANT]
+>
+> **Note**: This documentation has been generated with the assistance of LLMs (Claude Code). While we strive for accuracy, some information may be incorrect or incomplete. If you find errors or have improvements, please open a pull request on the [GitHub Wiki repository](https://github.com/marcobreveglieri/prometheus-client-delphi.wiki). Your contributions help make this documentation better for everyone!
